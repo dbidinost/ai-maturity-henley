@@ -715,43 +715,58 @@ function showResults() {
   ).join('');
 }
 
-// ── Google Form submission ──
-const GOOGLE_FORM_URL = 'https://docs.google.com/forms/u/0/d/e/1FAIpQLSeJdQPGlwEhZFS1p-xGpGCZ54q_phcoPMnlkMczTZ8T8_gUGw/formResponse';
-const ENTRY_IDS = {
-  name:   'entry.1552114860', // Name
-  company:'entry.1205824736', // Company
-  dim0:   'entry.872205280',  // Strategy & intent
-  dim1:   'entry.1297569900', // Leadership & decisions
-  dim2:   'entry.717600093',  // Use cases & value
-  dim3:   'entry.593367568',  // Process integration
-  dim4:   'entry.559913157',  // Data & platform
-  dim5:   'entry.907990562',  // Risk, governance & compliance
-  dim6:   'entry.1714553163', // People & adoption
-};
+// ── Apps Script submission ──
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7jvMSN6XBPaDvDoIzCqL3rQGkOfzmRpcEs7fGwmppvO8ySK_sLq1rPWYzI1mu6wNL/exec'; // replace with your deployed URL
+
 function updateSubmitBtn() {
   document.getElementById('submit-btn').disabled = state.current.filter(v=>v!==null).length === 0;
 }
+
 function submitResults() {
   const name    = document.getElementById('field-name').value.trim();
   const company = document.getElementById('field-company').value.trim();
   if (!state.current.filter(v=>v!==null).length) { alert('Please rate at least one dimension before submitting.'); return; }
-  const params = new URLSearchParams();
-  params.set(ENTRY_IDS.name,    name    || '(not provided)');
-  params.set(ENTRY_IDS.company, company || '(not provided)');
-  DIMS.forEach((d,i) => params.set(ENTRY_IDS['dim'+i], state.current[i]!==null ? LCODES[state.current[i]] : 'Not rated'));
-  document.getElementById('submit-frame').src = GOOGLE_FORM_URL + '?' + params.toString();
-  const btn = document.getElementById('submit-btn');
-  btn.disabled = true;
-  btn.innerHTML = '✓ Submitted';
-  btn.style.background = '#2e7d32';
+
+  const btn  = document.getElementById('submit-btn');
   const note = document.getElementById('submit-note');
-  note.style.display = 'block';
-  note.textContent = 'Your results have been submitted. Thank you.';
+  btn.disabled  = true;
+  btn.innerHTML = '⏳ Submitting…';
+
+  const payload = {
+    name:    name    || '(not provided)',
+    company: company || '(not provided)',
+    dim0: state.current[0] !== null ? LCODES[state.current[0]] : 'Not rated',
+    dim1: state.current[1] !== null ? LCODES[state.current[1]] : 'Not rated',
+    dim2: state.current[2] !== null ? LCODES[state.current[2]] : 'Not rated',
+    dim3: state.current[3] !== null ? LCODES[state.current[3]] : 'Not rated',
+    dim4: state.current[4] !== null ? LCODES[state.current[4]] : 'Not rated',
+    dim5: state.current[5] !== null ? LCODES[state.current[5]] : 'Not rated',
+    dim6: state.current[6] !== null ? LCODES[state.current[6]] : 'Not rated',
+  };
+
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(() => {
+    btn.innerHTML = '✓ Submitted';
+    btn.style.background = '#2e7d32';
+    note.style.display = 'block';
+    note.textContent = 'Your results have been submitted. Thank you.';
+  })
+  .catch(() => {
+    btn.disabled = false;
+    btn.innerHTML = '→ Submit results';
+    note.style.display = 'block';
+    note.style.color = '#b83030';
+    note.textContent = 'Submission failed — please try again.';
+  });
 }
 
 render();
 </script>
-<iframe id="submit-frame" name="submit-frame" style="display:none;" title="Form submission"></iframe>
 
 </body>
 </html>
