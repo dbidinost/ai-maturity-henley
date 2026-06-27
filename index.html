@@ -211,6 +211,15 @@
     color: var(--ink-light); margin-left: 4px;
     text-transform: none; letter-spacing: 0;
   }
+  .field-required {
+    color: #d32f2f;
+    font-weight: 700;
+    margin-left: 3px;
+  }
+  .field-input.field-invalid {
+    border-color: #d32f2f;
+    box-shadow: 0 0 0 3px rgba(211,47,47,0.08);
+  }
   .field-input {
     font-family: Arial, sans-serif;
     font-size: 13px;
@@ -229,49 +238,6 @@
     background: var(--card);
   }
   .field-input::placeholder { color: var(--ink-light); }
-
-  /* ── Objectives boxes ── */
-  .objectives-box {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--navy);
-    border-radius: var(--radius-lg);
-    padding: 1rem 1.4rem 1.1rem;
-    margin-bottom: 1.5rem;
-  }
-  .objectives-box label {
-    display: block;
-    font-size: 11px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--ink-light);
-    margin-bottom: 6px;
-  }
-  .objectives-box textarea {
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    color: var(--ink);
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 9px 12px;
-    width: 100%;
-    resize: vertical;
-    min-height: 80px;
-    outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    line-height: 1.5;
-  }
-  .objectives-box textarea:focus {
-    border-color: var(--navy);
-    box-shadow: 0 0 0 3px rgba(10,59,133,0.08);
-    background: var(--card);
-  }
-  .objectives-box textarea::placeholder { color: var(--ink-light); }
-  .objectives-summary { margin-top: 1.5rem; }
-  .objectives-summary h3 { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 0.75rem; }
-  .obj-row { margin-bottom: 0.75rem; }
-  .obj-row-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-light); margin-bottom: 3px; }
-  .obj-row-text { font-size: 13px; color: var(--ink-mid); white-space: pre-wrap; }
 
   /* ── Submit button ── */
   .btn-submit {
@@ -583,17 +549,17 @@
 
 <main>
   <div class="participant-section">
+    <div class="field-group" style="grid-column: 1 / -1;">
+      <label class="field-label" for="field-email">Email <span class="field-required">*</span></label>
+      <input class="field-input" id="field-email" type="email" placeholder="you@company.com" autocomplete="email" required>
+    </div>
     <div class="field-group">
-      <label class="field-label" for="field-name">Name</label>
-      <input class="field-input" id="field-name" type="text" placeholder="Your name" autocomplete="name" required>
+      <label class="field-label" for="field-name">Name <span class="field-optional">(optional)</span></label>
+      <input class="field-input" id="field-name" type="text" placeholder="Your name" autocomplete="name">
     </div>
     <div class="field-group">
       <label class="field-label" for="field-company">Organisation <span class="field-optional">(optional)</span></label>
       <input class="field-input" id="field-company" type="text" placeholder="Your organisation" autocomplete="organization">
-    </div>
-    <div class="field-group" style="grid-column: 1 / -1;">
-      <label class="field-label" for="field-email">Email <span class="field-optional">(optional)</span></label>
-      <input class="field-input" id="field-email" type="email" placeholder="Your email address" autocomplete="email">
     </div>
   </div>
 
@@ -641,7 +607,6 @@
         <tbody id="gap-tbody"></tbody>
       </table>
     </div>
-    <div id="objectives-summary" class="objectives-summary" style="display:none;"></div>
   </div>
 </main>
 
@@ -670,10 +635,8 @@ const DIMS = [
 ];
 const LCODES = ['L1 Explore','L2 Pilot','L3 Scale','L4 Transform'];
 const GROUP_COLORS = { Thought:'#0A3B85', Action:'#00A3AD', Systems:'#AE2573' };
-const state = { current: new Array(7).fill(null), objectives: { Thought: '', Action: '', Systems: '' } };
+const state = { current: new Array(7).fill(null) };
 let radarChart = null;
-
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function getTileClass(di, li) {
   return state.current[di] === li ? 'sel-current' : '';
@@ -684,20 +647,11 @@ function handleTile(di, li) {
   updateSubmitBtn();
   if (document.getElementById('results-section').style.display !== 'none') showResults();
 }
-function objBox(group) {
-  const color = GROUP_COLORS[group];
-  return `<div class="objectives-box" style="border-left-color:${color};">` +
-    `<label style="color:${color};">${group} Objectives</label>` +
-    `<textarea placeholder="Add your ${group.toLowerCase()} objectives…" ` +
-    `oninput="state.objectives['${group}']=this.value">${esc(state.objectives[group])}</textarea></div>`;
-}
-
 function render() {
   const container = document.getElementById('dims-container');
   let h = '', lastGroup = null;
   DIMS.forEach((d, di) => {
     if (d.group !== lastGroup) {
-      if (lastGroup) h += objBox(lastGroup);
       h += `<div class="group-heading"><div class="group-pip" style="background:${GROUP_COLORS[d.group]};"></div><h2>${d.group}</h2></div>`;
       lastGroup = d.group;
     }
@@ -707,14 +661,12 @@ function render() {
     });
     h += '</div></div>';
   });
-  if (lastGroup) h += objBox(lastGroup);
   container.innerHTML = h;
   const filled = state.current.filter(v => v !== null).length;
   document.getElementById('progress-text').innerHTML = `<strong>${filled} of 7</strong> dimensions rated`;
 }
 function resetAll() {
   state.current.fill(null);
-  state.objectives = { Thought: '', Action: '', Systems: '' };
   render();
   updateSubmitBtn();
   document.getElementById('results-section').style.display = 'none';
@@ -724,9 +676,6 @@ function avg(arr) {
   return v.length ? v.reduce((a,b) => a+b, 0) / v.length : null;
 }
 function showResults() {
-  const name  = document.getElementById('field-name').value.trim();
-  const email = document.getElementById('field-email').value.trim();
-  if (!name)  { alert('Please enter your name before viewing results.'); document.getElementById('field-name').focus(); return; }
   const filled = state.current.filter(v => v !== null).length;
   if (!filled) { alert('Please rate at least one dimension first.'); return; }
   document.getElementById('results-section').style.display = 'block';
@@ -775,21 +724,6 @@ function showResults() {
       <td style="color:#7080a0;font-size:12px;">${DIMS.find(d=>d.name===r.name).levels[r.c]}</td>
     </tr>`
   ).join('');
-
-  const objSummary = document.getElementById('objectives-summary');
-  const hasAny = Object.values(state.objectives).some(v => v.trim());
-  if (hasAny) {
-    objSummary.style.display = 'block';
-    objSummary.innerHTML = '<h3>Your Objectives</h3>' +
-      Object.entries(state.objectives).map(([group, text]) =>
-        text.trim() ? `<div class="obj-row">
-          <div class="obj-row-label" style="color:${GROUP_COLORS[group]};">${group} Objectives</div>
-          <div class="obj-row-text">${esc(text)}</div>
-        </div>` : ''
-      ).join('');
-  } else {
-    objSummary.style.display = 'none';
-  }
 }
 
 // ── Apps Script submission ──
@@ -800,10 +734,20 @@ function updateSubmitBtn() {
 }
 
 function submitResults() {
+  const emailInput = document.getElementById('field-email');
+  const email   = emailInput.value.trim();
   const name    = document.getElementById('field-name').value.trim();
-  const email   = document.getElementById('field-email').value.trim();
   const company = document.getElementById('field-company').value.trim();
-  if (!name)  { alert('Please enter your name before submitting.'); document.getElementById('field-name').focus(); return; }
+
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!emailValid) {
+    emailInput.classList.add('field-invalid');
+    emailInput.focus();
+    alert('Please enter a valid email address — this field is required.');
+    return;
+  }
+  emailInput.classList.remove('field-invalid');
+
   if (!state.current.filter(v=>v!==null).length) { alert('Please rate at least one dimension before submitting.'); return; }
 
   const btn  = document.getElementById('submit-btn');
@@ -812,8 +756,8 @@ function submitResults() {
   btn.innerHTML = '⏳ Submitting…';
 
   const payload = {
-    name:    name,
     email:   email,
+    name:    name    || '(not provided)',
     company: company || '(not provided)',
     dim0: state.current[0] !== null ? LCODES[state.current[0]] : 'Not rated',
     dim1: state.current[1] !== null ? LCODES[state.current[1]] : 'Not rated',
@@ -822,9 +766,6 @@ function submitResults() {
     dim4: state.current[4] !== null ? LCODES[state.current[4]] : 'Not rated',
     dim5: state.current[5] !== null ? LCODES[state.current[5]] : 'Not rated',
     dim6: state.current[6] !== null ? LCODES[state.current[6]] : 'Not rated',
-    thoughtObjectives:  state.objectives.Thought  || '',
-    actionObjectives:   state.objectives.Action   || '',
-    systemsObjectives:  state.objectives.Systems  || '',
   };
 
   fetch(APPS_SCRIPT_URL, {
